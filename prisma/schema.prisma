@@ -1,0 +1,102 @@
+// Prisma Schema for SMG Kafka Project
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 메시지 테이블 - Kafka에서 수신한 메시지 저장
+model Message {
+  id          String   @id @default(uuid())
+  topic       String   @db.VarChar(255)
+  partition   Int
+  offset      String   @db.VarChar(255)
+  key         String?  @db.VarChar(255)
+  value       Json     // JSON 형태의 메시지 내용
+  headers     Json?    // Kafka 헤더 정보
+  timestamp   DateTime @default(now())
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("messages")
+  @@index([topic])
+  @@index([timestamp])
+  @@index([topic, partition, offset])
+}
+
+// 사용자 활동 로그 테이블
+model UserActivity {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id") @db.VarChar(255)
+  action      String   @db.VarChar(100)
+  resource    String?  @db.VarChar(255)
+  metadata    Json?    // 추가 메타데이터
+  ipAddress   String?  @map("ip_address") @db.VarChar(45)
+  userAgent   String?  @map("user_agent") @db.Text
+  timestamp   DateTime @default(now())
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("user_activities")
+  @@index([userId])
+  @@index([action])
+  @@index([timestamp])
+}
+
+// 시스템 메트릭 테이블
+model SystemMetric {
+  id          String   @id @default(uuid())
+  metricName  String   @map("metric_name") @db.VarChar(100)
+  value       Float
+  unit        String?  @db.VarChar(50)
+  tags        Json?    // 메트릭 태그
+  timestamp   DateTime @default(now())
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("system_metrics")
+  @@index([metricName])
+  @@index([timestamp])
+  @@index([metricName, timestamp])
+}
+
+// Kafka 토픽 상태 관리 테이블
+model TopicStatus {
+  id              String   @id @default(uuid())
+  topicName       String   @unique @map("topic_name") @db.VarChar(255)
+  partitionCount  Int      @map("partition_count")
+  replicationFactor Int    @map("replication_factor")
+  isActive        Boolean  @default(true) @map("is_active")
+  lastMessageAt   DateTime? @map("last_message_at")
+  messageCount    BigInt   @default(0) @map("message_count")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("topic_status")
+  @@index([topicName])
+  @@index([isActive])
+}
+
+// 에러 로그 테이블
+model ErrorLog {
+  id          String   @id @default(uuid())
+  service     String   @db.VarChar(100) // producer, consumer, api
+  errorType   String   @map("error_type") @db.VarChar(100)
+  message     String   @db.Text
+  stackTrace  String?  @map("stack_trace") @db.Text
+  context     Json?    // 에러 발생 컨텍스트
+  severity    String   @default("error") @db.VarChar(20) // error, warning, critical
+  resolved    Boolean  @default(false)
+  resolvedAt  DateTime? @map("resolved_at")
+  timestamp   DateTime @default(now())
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("error_logs")
+  @@index([service])
+  @@index([errorType])
+  @@index([severity])
+  @@index([timestamp])
+  @@index([resolved])
+}
