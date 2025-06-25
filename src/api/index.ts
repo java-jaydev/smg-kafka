@@ -3,7 +3,6 @@ import { PrismaClient } from '@prisma/client'
 import { logger } from '../utils/logger'
 import config from '../config'
 import KafkaProducer from '../producer'
-import KafkaConsumer from '../consumer'
 import * as dotenv from 'dotenv'
 
 dotenv.config()
@@ -30,7 +29,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 })
 
 // 요청 로깅 미들웨어
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use((req: Request, _res: Response, next: NextFunction) => {
   logger.info(`${req.method} ${req.path}`, {
     ip: req.ip,
     userAgent: req.get('User-Agent'),
@@ -41,7 +40,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 })
 
 // Health Check
-app.get('/health', async (req: Request, res: Response) => {
+app.get('/health', async (_req: Request, res: Response) => {
   try {
     // 데이터베이스 연결 확인
     await prisma.$queryRaw`SELECT 1`
@@ -231,10 +230,10 @@ app.get('/api/metrics/aggregated', async (req: Request, res: Response) => {
       LIMIT 100
     `
 
-    res.json({ data: result })
+    return res.json({ data: result })
   } catch (error) {
     logger.error('Failed to fetch aggregated metrics:', error)
-    res.status(500).json({ error: 'Failed to fetch aggregated metrics' })
+    return res.status(500).json({ error: 'Failed to fetch aggregated metrics' })
   }
 })
 
@@ -273,7 +272,7 @@ app.get('/api/errors', async (req: Request, res: Response) => {
 })
 
 // Topic Status API
-app.get('/api/topics', async (req: Request, res: Response) => {
+app.get('/api/topics', async (_req: Request, res: Response) => {
   try {
     const topics = await prisma.topicStatus.findMany({
       orderBy: { lastMessageAt: 'desc' }
@@ -304,10 +303,10 @@ app.post('/api/produce/user-activity', async (req: Request, res: Response) => {
       userAgent: userAgent || req.get('User-Agent')
     })
 
-    res.json({ success: true, message: 'User activity sent to Kafka' })
+    return res.json({ success: true, message: 'User activity sent to Kafka' })
   } catch (error) {
     logger.error('Failed to send user activity:', error)
-    res.status(500).json({ error: 'Failed to send user activity' })
+    return res.status(500).json({ error: 'Failed to send user activity' })
   }
 })
 
@@ -326,15 +325,15 @@ app.post('/api/produce/metric', async (req: Request, res: Response) => {
       tags
     })
 
-    res.json({ success: true, message: 'Metric sent to Kafka' })
+    return res.json({ success: true, message: 'Metric sent to Kafka' })
   } catch (error) {
     logger.error('Failed to send metric:', error)
-    res.status(500).json({ error: 'Failed to send metric' })
+    return res.status(500).json({ error: 'Failed to send metric' })
   }
 })
 
 // Statistics API
-app.get('/api/stats', async (req: Request, res: Response) => {
+app.get('/api/stats', async (_req: Request, res: Response) => {
   try {
     const [
       messageCount,
@@ -367,7 +366,7 @@ app.get('/api/stats', async (req: Request, res: Response) => {
 })
 
 // Error handling middleware
-app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
+app.use((error: Error, _req: Request, res: Response, _next: NextFunction) => {
   logger.error('Unhandled error:', error)
   res.status(500).json({
     error: 'Internal server error',

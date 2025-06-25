@@ -75,7 +75,7 @@ export class KafkaConsumer {
           })
 
           // 메시지를 데이터베이스에 저장
-          await this.saveMessage(topic, partition, message.offset, key, parsedValue, headers)
+          await this.saveMessage(topic, partition, message.offset, key || null, parsedValue, headers)
 
           // 토픽별 특별 처리
           await this.processMessageByTopic(topic, parsedValue)
@@ -122,8 +122,8 @@ export class KafkaConsumer {
           key,
           value,
           headers: headers ? Object.fromEntries(
-            Object.entries(headers).map(([k, v]) => [k, v?.toString()])
-          ) : null,
+            Object.entries(headers).map(([k, v]) => [k, v?.toString() || null])
+          ) : undefined,
           timestamp: new Date()
         }
       })
@@ -274,7 +274,7 @@ export class KafkaConsumer {
       const groupDescription = await admin.describeGroups([consumerConfig.groupId!])
       const groupOffsets = await admin.fetchOffsets({
         groupId: consumerConfig.groupId!,
-        topics: Object.values(TOPICS).map(topic => ({ topic }))
+        topics: Object.values(TOPICS)
       })
 
       await admin.disconnect()
