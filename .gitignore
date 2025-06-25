@@ -11,7 +11,9 @@ build/
 .env
 .env.local
 .env.production
-.env.test
+.env.staging
+!.env.example
+!.env.test
 
 # Logs
 logs/
@@ -56,3 +58,29 @@ prisma/migrations/
 # Temporary files
 tmp/
 temp/
+
+# ESLint cache
+.eslintcache
+
+# Secrets and certificates
+secrets/
+certs/
+*.pem
+*.key
+*.crt
+
+# Backup files
+*.backup
+*.bak
+
+# GitHub CLI
+gh_*
+
+# Monitoring data
+prometheus_data/
+grafana_data/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
